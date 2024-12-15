@@ -14,6 +14,7 @@ describe('NFT', () => {
   const MAX_SUPPLY = 100
   const BASE_URI =
     'ipfs://bafybeidjnnbdewljxi2z2y3oiajtmmmow6cufmkdi6yckvdbrl6chi2uiy/'
+  const MAX_MINT_AMOUNT = 5
 
   let nft, deployer, minter
 
@@ -34,7 +35,8 @@ describe('NFT', () => {
         COST,
         MAX_SUPPLY,
         ALLOW_MINTING_ON,
-        BASE_URI
+        BASE_URI,
+        MAX_MINT_AMOUNT
       )
     })
     it('has correct name', async () => {
@@ -64,6 +66,10 @@ describe('NFT', () => {
     it('returns the owner', async () => {
       expect(await nft.owner()).to.equal(deployer.address)
     })
+
+    it('returns the max mint amount', async () => {
+      expect(await nft.maxMintAmount()).to.equal(MAX_MINT_AMOUNT)
+    })
   })
 
   describe('Minting', async () => {
@@ -80,7 +86,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         transaction = await nft.connect(minter).mint(1, { value: COST })
@@ -125,7 +132,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         await expect(nft.connect(minter).mint(1, { value: ether(1) })).to.be
@@ -141,7 +149,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         await expect(nft.connect(minter).mint(0, { value: COST })).to.be
@@ -160,7 +169,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         await expect(nft.connect(minter).mint(1, { value: COST })).to.be
@@ -176,10 +186,29 @@ describe('NFT', () => {
           COST,
           1,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         await expect(nft.connect(minter).mint(2, { value: COST })).to.be
+          .reverted
+      })
+
+      it('does not allow more NFTs to be minted than the max mint amount', async () => {
+        const ALLOW_MINTING_ON = Date.now().toString().slice(0, 10) // Now
+        const NFT = await ethers.getContractFactory('NFT')
+        nft = await NFT.deploy(
+          NAME,
+          SYMBOL,
+          COST,
+          MAX_SUPPLY,
+          ALLOW_MINTING_ON,
+          BASE_URI,
+          2
+        )
+
+        await nft.connect(minter).mint(1, { value: COST })
+        await expect(nft.connect(minter).mint(4, { value: COST.mul(4) })).to.be
           .reverted
       })
 
@@ -192,7 +221,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
         nft.connect(minter).mint(1, { value: COST })
 
@@ -214,7 +244,8 @@ describe('NFT', () => {
         COST,
         MAX_SUPPLY,
         ALLOW_MINTING_ON,
-        BASE_URI
+        BASE_URI,
+        MAX_MINT_AMOUNT
       )
 
       transaction = await nft.connect(minter).mint(3, { value: ether(30) })
@@ -228,7 +259,7 @@ describe('NFT', () => {
     })
   })
 
-  describe('Minting', () => {
+  describe('Withdrawing', () => {
     describe('Success', async () => {
       let transaction, result, balanceBefore
 
@@ -242,7 +273,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         transaction = await nft.connect(minter).mint(1, { value: COST })
@@ -254,7 +286,7 @@ describe('NFT', () => {
         result = await transaction.wait()
       })
 
-      it('deducts cntract balance', async () => {
+      it('deducts contract balance', async () => {
         expect(await ethers.provider.getBalance(nft.address)).to.equal(0)
       })
 
@@ -282,7 +314,8 @@ describe('NFT', () => {
           COST,
           MAX_SUPPLY,
           ALLOW_MINTING_ON,
-          BASE_URI
+          BASE_URI,
+          MAX_MINT_AMOUNT
         )
 
         await expect(nft.connect(minter).withdraw()).to.be.reverted
